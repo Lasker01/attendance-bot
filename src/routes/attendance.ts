@@ -21,107 +21,96 @@ router.post('/bot', async (req: Request, res: Response) => {
       const userName = event.message.sender.displayName;
 
       if (message === '/출근') {
-        const lastRecord = await supabaseService.getLastRecord(userId);
-        const todayAttendance = await supabaseService.getTodayAttendance(userId);
-
-        const hasCheckedInToday = todayAttendance.some(
-          (record) => record.type === 'check-in'
-        );
-
-        const isOnBreak = lastRecord?.type === 'break-start';
-
-        if (isOnBreak) {
-          const timestamp = new Date();
-          const record: AttendanceRecord = {
-            user_id: userId,
-            user_name: userName,
-            type: 'break-end',
-            timestamp: timestamp.toISOString(),
-          };
-
-          await supabaseService.saveAttendance(record);
-
-          const responseMessage = googleChatService.createBreakEndMessage(
-            userName,
-            timestamp
-          );
-
-          await googleChatService.sendAttendanceMessage(responseMessage);
-          return res.status(200).json(responseMessage);
-        }
-
-        if (hasCheckedInToday) {
-          return res.status(200).json({
-            text: '⚠️ 이미 오늘 출근 처리가 되어 있습니다.',
-          });
-        }
-
         const timestamp = new Date();
-        const record: AttendanceRecord = {
-          user_id: userId,
-          user_name: userName,
-          type: 'check-in',
-          timestamp: timestamp.toISOString(),
-        };
 
-        await supabaseService.saveAttendance(record);
-
+        // 즉시 응답 반환 (< 10ms)
         const responseMessage = googleChatService.createCheckInMessage(
           userName,
           timestamp
         );
+        res.status(200).json(responseMessage);
 
-        await googleChatService.sendAttendanceMessage(responseMessage);
-        return res.status(200).json(responseMessage);
+        // 백그라운드에서 DB 작업 수행
+        setImmediate(async () => {
+          try {
+            const todayAttendance = await supabaseService.getTodayAttendance(userId);
+
+            const hasCheckedInToday = todayAttendance.some(
+              (record) => record.type === 'check-in'
+            );
+
+            const lastRecord = todayAttendance.length > 0
+              ? todayAttendance[todayAttendance.length - 1]
+              : null;
+            const isOnBreak = lastRecord?.type === 'break-start';
+
+            // 중복 출근이 아니거나 휴식 종료인 경우만 저장
+            if (!hasCheckedInToday || isOnBreak) {
+              const record: AttendanceRecord = {
+                user_id: userId,
+                user_name: userName,
+                type: isOnBreak ? 'break-end' : 'check-in',
+                timestamp: timestamp.toISOString(),
+              };
+
+              await supabaseService.saveAttendance(record);
+            }
+          } catch (error) {
+            console.error('Error in background attendance processing:', error);
+          }
+        });
+
+        return;
       } else if (message === '/휴식') {
-        const lastRecord = await supabaseService.getLastRecord(userId);
-
-        if (!lastRecord) {
-          return res.status(200).json({
-            text: '⚠️ 출근 기록이 없습니다. 먼저 출근 처리를 해주세요.',
-          });
-        }
-
-        if (lastRecord.type === 'check-out') {
-          return res.status(200).json({
-            text: '⚠️ 이미 퇴근하셨습니다.',
-          });
-        }
-
-        if (lastRecord.type === 'break-start') {
-          return res.status(200).json({
-            text: '⚠️ 이미 휴식 중입니다.',
-          });
-        }
-
         const timestamp = new Date();
 
-        const record: AttendanceRecord = {
-          user_id: userId,
-          user_name: userName,
-          type: 'break-start',
-          timestamp: timestamp.toISOString(),
-        };
-
-        await supabaseService.saveAttendance(record);
-
+        // 즉시 응답 반환
         const responseMessage = googleChatService.createBreakStartMessage(
           userName,
           timestamp
         );
+        res.status(200).json(responseMessage);
 
-        await googleChatService.sendAttendanceMessage(responseMessage);
-        return res.status(200).json(responseMessage);
+        // 백그라운드에서 검증 및 저장
+        setImmediate(async () => {
+          try {
+            const lastRecord = await supabaseService.getLastRecord(userId);
+
+            // 유효한 상태인 경우만 저장
+            if (lastRecord &&
+                lastRecord.type !== 'check-out' &&
+                lastRecord.type !== 'break-start') {
+              const record: AttendanceRecord = {
+                user_id: userId,
+                user_name: userName,
+                type: 'break-start',
+                timestamp: timestamp.toISOString(),
+              };
+
+              await supabaseService.saveAttendance(record);
+            }
+          } catch (error) {
+            console.error('Error in background break processing:', error);
+          }
+        });
+
+        return;
       } else if (message === '/퇴근') {
-        const lastCheckIn = await supabaseService.getLastCheckIn(userId);
+        const timestamp = new Date();
 
-        if (!lastCheckIn) {
+        // 빠른 조회 및 계산
+        const todayAttendance = await supabaseService.getTodayAttendance(userId);
+
+        const hasCheckedIn = todayAttendance.some(
+          (record) => record.type === 'check-in'
+        );
+
+        if (!hasCheckedIn) {
           return res.status(200).json({
             text: '⚠️ 출근 기록이 없습니다. 먼저 출근 처리를 해주세요.',
           });
         }
 
-        const todayAttendance = await supabaseService.getTodayAttendance(userId);
         const hasCheckedOutToday = todayAttendance.some(
           (record) => record.type === 'check-out'
         );
@@ -132,14 +121,15 @@ router.post('/bot', async (req: Request, res: Response) => {
           });
         }
 
-        const lastRecord = await supabaseService.getLastRecord(userId);
+        const lastRecord = todayAttendance.length > 0
+          ? todayAttendance[todayAttendance.length - 1]
+          : null;
+
         if (lastRecord?.type === 'break-start') {
           return res.status(200).json({
             text: '⚠️ 휴식 중입니다. /출근 명령어로 업무를 재개한 후 퇴근해주세요.',
           });
         }
-
-        const timestamp = new Date();
 
         const record: AttendanceRecord = {
           user_id: userId,
@@ -148,19 +138,28 @@ router.post('/bot', async (req: Request, res: Response) => {
           timestamp: timestamp.toISOString(),
         };
 
-        await supabaseService.saveAttendance(record);
-
-        const allTodayRecords = await supabaseService.getTodayAttendance(userId);
+        // 근무 시간 즉시 계산 (로컬 계산이므로 빠름)
+        const allTodayRecords = [...todayAttendance, record];
         const workingHours = supabaseService.calculateWorkingHours(allTodayRecords);
 
+        // 응답 즉시 반환
         const responseMessage = googleChatService.createCheckOutMessage(
           userName,
           timestamp,
           workingHours
         );
+        res.status(200).json(responseMessage);
 
-        await googleChatService.sendAttendanceMessage(responseMessage);
-        return res.status(200).json(responseMessage);
+        // 저장만 백그라운드에서 수행
+        setImmediate(async () => {
+          try {
+            await supabaseService.saveAttendance(record);
+          } catch (error) {
+            console.error('Error saving checkout record:', error);
+          }
+        });
+
+        return;
       }
     }
 

@@ -42,8 +42,43 @@ class GoogleChatService {
       minute: '2-digit',
     });
 
+    const date = timestamp.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+
     return {
-      text: `🟢 <b>${userName}</b>님이 ${time}에 출근하셨습니다.`,
+      cards: [
+        {
+          header: {
+            title: '✅ 출근 완료!',
+            subtitle: `${userName}님, 좋은 하루 되세요!`,
+          },
+          sections: [
+            {
+              widgets: [
+                {
+                  textParagraph: {
+                    text: `🕐 <b>출근 시간</b><br>${time}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `📅 <b>날짜</b><br>${date}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `${userName}님, 오늘도 화이팅! 💪`,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -57,8 +92,48 @@ class GoogleChatService {
       minute: '2-digit',
     });
 
+    const date = timestamp.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+
     return {
-      text: `🔴 <b>${userName}</b>님이 ${time}에 퇴근하셨습니다. (근무 시간: ${workingHours.workingHours}시간 ${workingHours.workingMinutes}분)`,
+      cards: [
+        {
+          header: {
+            title: '🔴 퇴근 완료!',
+            subtitle: `${userName}님, 수고하셨습니다!`,
+          },
+          sections: [
+            {
+              widgets: [
+                {
+                  textParagraph: {
+                    text: `🕐 <b>퇴근 시간</b><br>${time}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `📅 <b>날짜</b><br>${date}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `⏱️ <b>근무 시간</b><br>${workingHours.workingHours}시간 ${workingHours.workingMinutes}분`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `${userName}님, 푹 쉬세요! 🌙`,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -68,8 +143,43 @@ class GoogleChatService {
       minute: '2-digit',
     });
 
+    const date = timestamp.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+
     return {
-      text: `⏸️ <b>${userName}</b>님이 ${time}에 휴식을 시작했습니다.`,
+      cards: [
+        {
+          header: {
+            title: '⏸️ 휴식 시작',
+            subtitle: `${userName}님, 잠시 쉬어가세요!`,
+          },
+          sections: [
+            {
+              widgets: [
+                {
+                  textParagraph: {
+                    text: `🕐 <b>휴식 시작 시간</b><br>${time}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `📅 <b>날짜</b><br>${date}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `${userName}님, 편히 쉬세요! ☕`,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -79,8 +189,43 @@ class GoogleChatService {
       minute: '2-digit',
     });
 
+    const date = timestamp.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+
     return {
-      text: `▶️ <b>${userName}</b>님이 ${time}에 업무를 재개했습니다.`,
+      cards: [
+        {
+          header: {
+            title: '▶️ 업무 재개',
+            subtitle: `${userName}님, 다시 파이팅!`,
+          },
+          sections: [
+            {
+              widgets: [
+                {
+                  textParagraph: {
+                    text: `🕐 <b>업무 재개 시간</b><br>${time}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `📅 <b>날짜</b><br>${date}`,
+                  },
+                },
+                {
+                  textParagraph: {
+                    text: `${userName}님, 힘내세요! 💪`,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 }
