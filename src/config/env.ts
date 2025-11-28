@@ -4,7 +4,6 @@ export const config = {
     key: process.env.SUPABASE_KEY || '',
   },
   googleChat: {
-    dailyScrumWebhookUrl: process.env.GOOGLE_CHAT_DAILY_SCRUM_WEBHOOK_URL || '',
     attendanceWebhookUrl: process.env.GOOGLE_CHAT_ATTENDANCE_WEBHOOK_URL || '',
   },
   server: {
@@ -16,7 +15,6 @@ export function validateConfig(): void {
   const required = [
     'SUPABASE_URL',
     'SUPABASE_KEY',
-    'GOOGLE_CHAT_DAILY_SCRUM_WEBHOOK_URL',
     'GOOGLE_CHAT_ATTENDANCE_WEBHOOK_URL',
   ];
 
